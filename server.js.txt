@@ -1,0 +1,48 @@
+const express = require('express');
+const fs = require('fs');
+const cors = require('cors');
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+const hwidFile = './usedhwids.json';
+
+// Helper: load HWIDs from file
+function loadHWIDs() {
+  if (!fs.existsSync(hwidFile)) return [];
+  const data = fs.readFileSync(hwidFile);
+  return JSON.parse(data);
+}
+
+// Helper: save HWIDs to file
+function saveHWIDs(hwids) {
+  fs.writeFileSync(hwidFile, JSON.stringify(hwids, null, 2));
+}
+
+// GET all used HWIDs
+app.get('/hwids', (req, res) => {
+  const hwids = loadHWIDs();
+  res.json(hwids);
+});
+
+// POST a new HWID
+app.post('/hwids', (req, res) => {
+  const newHWID = req.body.hwid;
+  if (!newHWID) return res.status(400).json({ error: 'No HWID provided' });
+
+  let hwids = loadHWIDs();
+  if (hwids.includes(newHWID)) {
+    return res.status(409).json({ error: 'HWID already used' });
+  }
+
+  hwids.push(newHWID);
+  saveHWIDs(hwids);
+  res.json({ success: true });
+});
+
+// Start server
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`HWID backend running on port ${port}`);
+});
