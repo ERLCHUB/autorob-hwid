@@ -1,48 +1,38 @@
-const express = require('express');
-const fs = require('fs');
-const cors = require('cors');
+const express = require("express");
+const fs = require("fs");
+const cors = require("cors");
 const app = express();
+const PORT = process.env.PORT || 3000;
+
+const FILE = "./usedhwids.json";
 
 app.use(cors());
 app.use(express.json());
 
-const hwidFile = './usedhwids.json';
-
-// Helper: load HWIDs from file
-function loadHWIDs() {
-  if (!fs.existsSync(hwidFile)) return [];
-  const data = fs.readFileSync(hwidFile);
-  return JSON.parse(data);
+// Load HWIDs
+let usedHWIDs = [];
+if (fs.existsSync(FILE)) {
+  usedHWIDs = JSON.parse(fs.readFileSync(FILE));
 }
 
-// Helper: save HWIDs to file
-function saveHWIDs(hwids) {
-  fs.writeFileSync(hwidFile, JSON.stringify(hwids, null, 2));
-}
-
-// GET all used HWIDs
-app.get('/hwids', (req, res) => {
-  const hwids = loadHWIDs();
-  res.json(hwids);
+// GET all HWIDs
+app.get("/hwids", (req, res) => {
+  res.json(usedHWIDs);
 });
 
 // POST a new HWID
-app.post('/hwids', (req, res) => {
-  const newHWID = req.body.hwid;
-  if (!newHWID) return res.status(400).json({ error: 'No HWID provided' });
+app.post("/hwids", (req, res) => {
+  const hwid = req.body.hwid;
+  if (!hwid) return res.status(400).json({ error: "No HWID sent" });
 
-  let hwids = loadHWIDs();
-  if (hwids.includes(newHWID)) {
-    return res.status(409).json({ error: 'HWID already used' });
+  if (!usedHWIDs.includes(hwid)) {
+    usedHWIDs.push(hwid);
+    fs.writeFileSync(FILE, JSON.stringify(usedHWIDs, null, 2));
   }
 
-  hwids.push(newHWID);
-  saveHWIDs(hwids);
   res.json({ success: true });
 });
 
-// Start server
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`HWID backend running on port ${port}`);
+app.listen(PORT, () => {
+  console.log(`HWID backend running on port ${PORT}`);
 });
